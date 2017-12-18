@@ -1,4 +1,4 @@
-package main;
+package abp_rx.nw.cs.hm.edu;
 
 public class FileReceiver implements Runnable{
 
