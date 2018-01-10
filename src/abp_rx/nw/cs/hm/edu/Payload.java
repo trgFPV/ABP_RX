@@ -40,4 +40,10 @@ public class Payload {
 		buff.order(ByteOrder.LITTLE_ENDIAN);
 		return buff.getLong();
 	}
+	
+	public int byteToInt(byte[] input) {
+		final ByteBuffer buff = ByteBuffer.wrap(input);
+		buff.order(ByteOrder.LITTLE_ENDIAN);
+		return buff.getInt();
+	}
 }

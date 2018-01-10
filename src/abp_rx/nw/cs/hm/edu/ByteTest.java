@@ -11,21 +11,19 @@ public class ByteTest {
 	private int dataPkgSize = 0;
 	private static long sequenceNrSize = 1;
 	private int checkSumNrSize = 0;
-	private static long ack = 0;
+	private static int ack = 0;
 
 	public static void main(String[] args) throws IOException {
 		Payload payload = new Payload();
-		ByteArrayInputStream output = new ByteArrayInputStream();
-//		output.write(storeLongInToByte(ack));
-		output.read(storeLongInToByte(sequenceNrSize));
-//		try {
-//			output.write(storeLongInToByte(generateChecksum(data)));
-//			output.write(data);
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+//		output.write((ack));
+		output.write(storeLongInToByte(sequenceNrSize));
 
-		System.out.println(output.read());
+		byte[] nothing = new byte[1400];
+		
+
+		System.out.println(nothing);
+		System.out.println(output.toByteArray()[0]);
 	}
 	
 	public static int byteToInt(byte[] input) {
