@@ -11,7 +11,7 @@ import java.util.zip.CRC32;
 
 public class RX {
 
-	private static final int INPORT = 8086;
+	private static final int INPORT = 8087;
 	DatagramSocket Inputsocket;
 	Payload payload;
 	private byte[] inData = new byte[1400];
@@ -19,17 +19,23 @@ public class RX {
 	public RX(Payload pay) {
 		this.payload = pay;
 		try {
-			Inputsocket = new DatagramSocket(INPORT, InetAddress.getLoopbackAddress());
+			Inputsocket = new DatagramSocket(INPORT);
 		} catch (SocketException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public void waitForPacket() {
+	public int waitForPacket() {
 
 		System.out.println("wait");
 
-		DatagramPacket input = new DatagramPacket(inData, inData.length);
+		DatagramPacket input = null;
+		try {
+			input = new DatagramPacket(inData, inData.length,InetAddress.getByName("192.168.178.137"),8086);
+		} catch (UnknownHostException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		try {
 			Inputsocket.receive(input);
 			System.out.println("package received");
@@ -37,15 +43,17 @@ public class RX {
 			e.printStackTrace();
 		}
 		
-		System.out.println(input.getData());
 		byte[] head = input.getData();
-		int ack = payload.byteToInt(Arrays.copyOfRange(head, 0, 1));
-		int sequence = payload.byteToInt(Arrays.copyOfRange(head, 1, 2));
-		long checksum = payload.byteToLong(Arrays.copyOfRange(head, 2, 10));
-		byte[] content = Arrays.copyOfRange(head, 10, inData.length - 1);
+		int ack = head[0];
+		int sequence = payload.byteToInt(Arrays.copyOfRange(head, 1, 5));
+		long checksum = payload.byteToLong(Arrays.copyOfRange(head, 5, 13));
+		byte[] content = Arrays.copyOfRange(head, 13, inData.length - 1);
 		if (generateChecksum(content) == checksum) {
 			System.out.println("test ok");
 		}
+		System.out.println("Ack: "+ack+" Sequence :"+sequence+" checksum:"+ checksum);
+		System.out.println(generateChecksum(content));
+		return ack;
 	}
 
 	private long generateChecksum(byte[] field) {

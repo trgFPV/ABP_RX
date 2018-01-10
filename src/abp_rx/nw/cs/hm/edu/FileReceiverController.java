@@ -20,6 +20,7 @@ public class FileReceiverController implements Runnable{
 	
 	private Payload pay;
 	private RX receiver;
+	private int ack;
 	
 	public FileReceiverController() {
 		currentState = State.GET_PACKAGES;
@@ -58,7 +59,18 @@ public class FileReceiverController implements Runnable{
 				e.printStackTrace();
 			}
 			receiver = new RX(pay);
-			receiver.waitForPacket();
+			ack = receiver.waitForPacket();
+			break;
+			
+		case CHECKFIRSTSUM:
+			switch(ack) {
+			case 0:
+				break;
+				
+			case 1:
+				break;
+			
+			}
 			break;
 		}
 	}
