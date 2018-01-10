@@ -1,6 +1,9 @@
 package abp_rx.nw.cs.hm.edu;
 
-public class FileReceiverController {
+import java.io.IOException;
+import java.net.DatagramPacket;
+
+public class FileReceiverController implements Runnable{
 	
 	public enum State {
 		GET_PACKAGES, CHECKFIRSTSUM, SENDACK0, SENDACK1, GETANOTHERPACKAGEack1, GETANOTHERPACKAGEack0, BUILD_FILE
@@ -14,6 +17,9 @@ public class FileReceiverController {
 	private State currentState;
 	// 2D array defining all transitions that can occur
 	private Transition[][] transition;
+	
+	private Payload pay;
+	private RX receiver;
 	
 	public FileReceiverController() {
 		currentState = State.GET_PACKAGES;
@@ -30,6 +36,10 @@ public class FileReceiverController {
 		transition[State.SENDACK1.ordinal()][Msg.ALL_PACKAGES_RECEIVED.ordinal()] = new BuildFile();
 	}
 	
+	public static void main(String[] args) {
+		new Thread(new FileReceiverController()).start();
+	}
+	
 	public void processMsg(Msg input){
 		System.out.println("INFO Received "+input+" in state "+currentState);
 		Transition trans = transition[currentState.ordinal()][input.ordinal()];
@@ -37,6 +47,20 @@ public class FileReceiverController {
 			currentState = trans.execute(input);
 		}
 		System.out.println("INFO State: "+currentState);
+	}
+	
+	public void run() {
+		switch(currentState) {
+		case GET_PACKAGES:
+			try {
+				pay = new Payload();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			receiver = new RX(pay);
+			receiver.waitForPacket();
+			break;
+		}
 	}
 	
 	abstract class Transition {
