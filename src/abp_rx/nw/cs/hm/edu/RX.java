@@ -36,11 +36,12 @@ public class RX {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
+		
+		System.out.println(input.getData());
 		byte[] head = input.getData();
-		int ack = payload.byteToInt(Arrays.copyOfRange(head, 0, 1));
-		int sequence = payload.byteToInt(Arrays.copyOfRange(head, 1, 5));
-		long checksum = payload.byteToInt(Arrays.copyOfRange(head, 5, 9));
+		long ack = payload.byteToLong(Arrays.copyOfRange(head, 0, 1));
+		long sequence = payload.byteToLong(Arrays.copyOfRange(head, 1, 5));
+		long checksum = payload.byteToLong(Arrays.copyOfRange(head, 5, 9));
 		byte[] content = Arrays.copyOfRange(head, 9, inData.length - 1);
 		if (generateChecksum(content) == checksum) {
 			System.out.println("test ok");

@@ -35,9 +35,9 @@ public class Payload {
 		return size;
 	}
 
-	public int byteToInt(byte[] input) {
+	public long byteToLong(byte[] input) {
 		final ByteBuffer buff = ByteBuffer.wrap(input);
 		buff.order(ByteOrder.LITTLE_ENDIAN);
-		return buff.getInt();
+		return buff.getLong();
 	}
 }
