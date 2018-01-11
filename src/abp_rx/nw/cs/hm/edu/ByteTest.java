@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 
 public class ByteTest {
 	
@@ -19,17 +20,35 @@ public class ByteTest {
 //		output.write((ack));
 		output.write(storeLongInToByte(sequenceNrSize));
 
-		byte[] nothing = new byte[1400];
-		
+		byte [] nothing  = storeviaStream(144444);
+		int checksum = byteToInt(Arrays.copyOfRange(nothing,8,12));
 
-		System.out.println(nothing);
-		System.out.println(output.toByteArray()[0]);
+		System.out.println(checksum);
+	}
+	
+	public static byte[] storeviaStream(int i) throws IOException {
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+		out.write(storeIntInToByte(0));
+
+		out.write(storeIntInToByte(1));
+		out.write(storeIntInToByte(i));
+		return out.toByteArray();
 	}
 	
 	public static int byteToInt(byte[] input) {
+		
 		final ByteBuffer buff = ByteBuffer.wrap(input);
 		buff.order(ByteOrder.LITTLE_ENDIAN);
 		return buff.getInt();
+	}
+	
+	public static byte[] storeIntInToByte(int data) {
+		
+		final ByteBuffer bb = ByteBuffer.allocate(Integer.SIZE / Byte.SIZE);
+		bb.order(ByteOrder.LITTLE_ENDIAN);
+		bb.putInt(data);
+		return bb.array();
 	}
 	
 	public static byte[] storeLongInToByte(Long data) {

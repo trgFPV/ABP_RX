@@ -15,7 +15,7 @@ public class RX {
 	private static final int INPORT = 8087;
 	DatagramSocket Inputsocket;
 	Payload payload;
-	private byte[] inData = new byte[1400];
+	private byte[] inData = new byte[1440];
 
 	public RX(Payload pay) {
 		this.payload = pay;
@@ -44,36 +44,42 @@ public class RX {
 			e.printStackTrace();
 		}
 		
-		byte[] head = Arrays.copyOfRange(input.getData(), 0,13);
+		byte[] head = Arrays.copyOfRange(input.getData(), 0,20);
 		int ack = head[0];
-		int sequence = payload.byteToInt(Arrays.copyOfRange(head, 1, 5));
-		int checksum = payload.byteToInt(Arrays.copyOfRange(head, 5, 9));
-		int conlength = payload.byteToInt(Arrays.copyOfRange(head, 9, 13)) + 13;
-		System.out.println(conlength);
-		byte[] content = Arrays.copyOfRange(input.getData(), 13, conlength);
+		int sequence = payload.byteToInt(Arrays.copyOfRange(head, 4, 8));
+		long checksum = payload.byteToLong(Arrays.copyOfRange(head, 8, 16));
+		int conlength = payload.byteToInt(Arrays.copyOfRange(head, 16, 20)) + 20;
+
+		System.out.println("Ack: "+ack+" Sequence :"+sequence+" checksum:"+ checksum + " conlength: " + conlength);
+		byte[] content = Arrays.copyOfRange(input.getData(), 20, conlength);
+		System.out.println(content.length);
 		if (generateChecksum(content) == checksum) {
 			System.out.println("test ok");
+		} else {
+			
 		}
-		System.out.println("Ack: "+ack+" Sequence :"+sequence+" checksum:"+ checksum);
 		System.out.println(generateChecksum(content));
 		return ack;
 	}
 
-	private int generateChecksum(byte[] field) {
-		int checksum = 0;
-		for(byte b : field) {
-			checksum += b;
-		}
-		
-		return checksum;
+	private long generateChecksum(byte[] field) {
+//		int checksum = 0;
+//		for(byte b : field) {
+//			checksum += b;
+//		}
+//		
+//		return checksum;
+		CRC32 crc32 = new CRC32();
+		crc32.update(field);
+		return crc32.getValue();
 	}
 
-	public void connectionFailed() {
+	public void sendConnection(int i) {
 		//get ack 0 first.
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		
 		try {
-			output.write(payload.storeIntInToByte(0));
+			output.write(Payload.storeIntInToByte(i));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

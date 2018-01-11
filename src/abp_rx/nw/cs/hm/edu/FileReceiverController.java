@@ -53,25 +53,44 @@ public class FileReceiverController implements Runnable{
 	public void run() {
 		switch(currentState) {
 		case GET_PACKAGES:
-			try {
-				pay = new Payload();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			receiver = new RX(pay);
-			ack = receiver.waitForPacket();
-			break;
+			processMsg(Msg.READ_HEADER);
 			
 		case CHECKFIRSTSUM:
 			switch(ack) {
 			case 0:
-				receiver.connectionFailed();
-				break;
+				receiver.sendConnection(0);
+				processMsg(Msg.TIMEOUT);
 				
 			case 1:
-				break;
-			
+				receiver.sendConnection(1);
+				processMsg(Msg.CHECKSUM_SUCCESSFULL);
 			}
+			
+		case GETANOTHERPACKAGEack0:
+			switch(ack) {
+			case 0:
+				receiver.sendConnection(0);
+				processMsg(Msg.CHECKSUM);
+				
+			case 1:
+				receiver.sendConnection(1);
+				processMsg(Msg.CHECKSUM);
+			}
+			break;
+			
+//		case GETANOTHERPACKAGEack1:
+//			switch(ack) {
+//			case 0:
+//				receiver.sendConnection(0);
+//				processMsg(Msg.CHECKSUM);
+//				
+//			case 1:
+//				receiver.sendConnection(1);
+//				processMsg(Msg.CHECKSUM);
+//			}
+//			break;
+			
+		default:
 			break;
 		}
 	}
@@ -83,6 +102,13 @@ public class FileReceiverController implements Runnable{
 	class Checksum extends Transition {
 		@Override
 		public State execute(Msg input) {
+			try {
+				pay = new Payload();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			receiver = new RX(pay);
+			ack = receiver.waitForPacket();
 			System.out.println("Package Received!");
 			return State.CHECKFIRSTSUM;
 		}
