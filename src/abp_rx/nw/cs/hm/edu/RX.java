@@ -44,11 +44,12 @@ public class RX {
 			e.printStackTrace();
 		}
 		
-		byte[] head =  Arrays.copyOfRange(input.getData(), 0,13);
+		byte[] head = Arrays.copyOfRange(input.getData(), 0,13);
 		int ack = head[0];
 		int sequence = payload.byteToInt(Arrays.copyOfRange(head, 1, 5));
-		long checksum = payload.byteToLong(Arrays.copyOfRange(head, 5, 13));
-		int conlength = payload.byteToInt(Arrays.copyOfRange(head, 9, 13)) + 13; 
+		int checksum = payload.byteToInt(Arrays.copyOfRange(head, 5, 9));
+		int conlength = payload.byteToInt(Arrays.copyOfRange(head, 9, 13)) + 13;
+		System.out.println(conlength);
 		byte[] content = Arrays.copyOfRange(input.getData(), 13, conlength);
 		if (generateChecksum(content) == checksum) {
 			System.out.println("test ok");
@@ -58,10 +59,13 @@ public class RX {
 		return ack;
 	}
 
-	private long generateChecksum(byte[] field) {
-		CRC32 crc32 = new CRC32();
-		crc32.update(field);
-		return crc32.getValue();
+	private int generateChecksum(byte[] field) {
+		int checksum = 0;
+		for(byte b : field) {
+			checksum += b;
+		}
+		
+		return checksum;
 	}
 
 	public void connectionFailed() {

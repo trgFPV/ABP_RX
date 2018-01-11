@@ -46,9 +46,15 @@ public class Payload {
 		buff.order(ByteOrder.LITTLE_ENDIAN);
 		return buff.getInt();
 	}
-
-	public byte[] storeIntInToByte(int i) {
-		// TODO Auto-generated method stub
-		return null;
+	
+	public static byte[] storeIntInToByte(int data) {
+		
+		final ByteBuffer bb = ByteBuffer.allocate(Integer.SIZE / Byte.SIZE);
+		bb.order(ByteOrder.LITTLE_ENDIAN);
+		bb.putInt(data);
+		return bb.array();
 	}
+
+
+	
 }
