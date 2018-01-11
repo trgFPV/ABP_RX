@@ -1,5 +1,6 @@
 package abp_rx.nw.cs.hm.edu;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -43,11 +44,12 @@ public class RX {
 			e.printStackTrace();
 		}
 		
-		byte[] head = input.getData();
+		byte[] head =  Arrays.copyOfRange(input.getData(), 0,13);
 		int ack = head[0];
 		int sequence = payload.byteToInt(Arrays.copyOfRange(head, 1, 5));
 		long checksum = payload.byteToLong(Arrays.copyOfRange(head, 5, 13));
-		byte[] content = Arrays.copyOfRange(head, 13, inData.length - 1);
+		int conlength = payload.byteToInt(Arrays.copyOfRange(head, 9, 13)) + 13; 
+		byte[] content = Arrays.copyOfRange(input.getData(), 13, conlength);
 		if (generateChecksum(content) == checksum) {
 			System.out.println("test ok");
 		}
@@ -60,6 +62,26 @@ public class RX {
 		CRC32 crc32 = new CRC32();
 		crc32.update(field);
 		return crc32.getValue();
+	}
+
+	public void connectionFailed() {
+		//get ack 0 first.
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		
+		try {
+			output.write(payload.storeIntInToByte(0));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		try {
+			Inputsocket.send(new DatagramPacket(
+			output.toByteArray(),output.toByteArray().length,InetAddress.getByName("192.168.178.137"),8086));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 
 	// public DatagramPacket preparePacket(int index) {

@@ -65,6 +65,7 @@ public class FileReceiverController implements Runnable{
 		case CHECKFIRSTSUM:
 			switch(ack) {
 			case 0:
+				receiver.connectionFailed();
 				break;
 				
 			case 1:
