@@ -29,8 +29,8 @@ public class FileReceiverController implements Runnable{
 		transition[State.GET_PACKAGES.ordinal()][Msg.READ_HEADER.ordinal()] = new Checksum();
 		transition[State.CHECKFIRSTSUM.ordinal()][Msg.CHECKSUM_SUCCESSFULL.ordinal()] = new SendAck1();
 		transition[State.CHECKFIRSTSUM.ordinal()][Msg.TIMEOUT.ordinal()] = new GoBackToIdle();
-		transition[State.GETACK0.ordinal()][Msg.READ.ordinal()] = new GetNextPackageACK1();
-		transition[State.GETACK1.ordinal()][Msg.READ.ordinal()] = new GetNextPackageACK0();
+		transition[State.GETACK0.ordinal()][Msg.READ.ordinal()] = new SendAck0();
+		transition[State.GETACK1.ordinal()][Msg.READ.ordinal()] = new SendAck1();
 
 		transition[State.GETACK0.ordinal()][Msg.CHECKSUM_UNSUCCESFULL.ordinal()] = new GetLastPackageAgain0();
 		transition[State.GETACK1.ordinal()][Msg.CHECKSUM_UNSUCCESFULL.ordinal()] = new GetLastPackageAgain1();
@@ -85,9 +85,9 @@ public class FileReceiverController implements Runnable{
 				receiver.sendConnection(0);
 				processMsg(Msg.CHECKSUM_UNSUCCESFULL);
 				
-//			case 2:
-//				System.out.println(ack);
-//				processMsg(Msg.ALL_PACKAGES_RECEIVED);
+			case 2:
+				System.out.println(ack);
+				processMsg(Msg.ALL_PACKAGES_RECEIVED);
 			}
 			
 		case GETANOTHERPACKAGEack1:
@@ -207,6 +207,7 @@ public class FileReceiverController implements Runnable{
 	class BuildFile extends Transition {
 		@Override
 		public State execute(Msg input) {
+			System.out.println("build File");
 			try (FileOutputStream file = new FileOutputStream("input.txt")) {
 				for (int i = 0; i < receiver.bytes.size(); i++) {  
 					file.write(receiver.bytes.get(i));
