@@ -7,6 +7,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.zip.CRC32;
 
@@ -16,6 +17,8 @@ public class RX {
 	DatagramSocket Inputsocket;
 	Payload payload;
 	private byte[] inData = new byte[1440];
+	public ArrayList <byte[]> bytes = new ArrayList<>();
+	public boolean allReceived = false;
 
 	public RX(Payload pay) {
 		this.payload = pay;
@@ -46,6 +49,7 @@ public class RX {
 		
 		byte[] head = Arrays.copyOfRange(input.getData(), 0,20);
 		int ack = head[0];
+		System.out.println(ack);
 		int sequence = payload.byteToInt(Arrays.copyOfRange(head, 4, 8));
 		long checksum = payload.byteToLong(Arrays.copyOfRange(head, 8, 16));
 		int conlength = payload.byteToInt(Arrays.copyOfRange(head, 16, 20)) + 20;
@@ -55,10 +59,14 @@ public class RX {
 		System.out.println(content.length);
 		if (generateChecksum(content) == checksum) {
 			System.out.println("test ok");
+			bytes.add(content);
+		} else if(ack == 2){
+			allReceived = true;
 		} else {
-			
+			System.out.println("package false");
 		}
 		System.out.println(generateChecksum(content));
+		System.out.println("wait for Packts= " + ack);
 		return ack;
 	}
 

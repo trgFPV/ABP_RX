@@ -1,12 +1,13 @@
 package abp_rx.nw.cs.hm.edu;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 
 public class FileReceiverController implements Runnable{
 	
 	public enum State {
-		GET_PACKAGES, CHECKFIRSTSUM, SENDACK0, SENDACK1, GETANOTHERPACKAGEack1, GETANOTHERPACKAGEack0, BUILD_FILE
+		GET_PACKAGES, CHECKFIRSTSUM, GETACK0, GETACK1, GETANOTHERPACKAGEack1, GETANOTHERPACKAGEack0, BUILD_FILE
 	}
 	
 	public enum Msg {
@@ -28,13 +29,17 @@ public class FileReceiverController implements Runnable{
 		transition[State.GET_PACKAGES.ordinal()][Msg.READ_HEADER.ordinal()] = new Checksum();
 		transition[State.CHECKFIRSTSUM.ordinal()][Msg.CHECKSUM_SUCCESSFULL.ordinal()] = new SendAck1();
 		transition[State.CHECKFIRSTSUM.ordinal()][Msg.TIMEOUT.ordinal()] = new GoBackToIdle();
-		transition[State.SENDACK0.ordinal()][Msg.READ.ordinal()] = new GetNextPackageACK1();
+		transition[State.GETACK0.ordinal()][Msg.READ.ordinal()] = new GetNextPackageACK1();
+		transition[State.GETACK1.ordinal()][Msg.READ.ordinal()] = new GetNextPackageACK0();
+
+		transition[State.GETACK0.ordinal()][Msg.CHECKSUM_UNSUCCESFULL.ordinal()] = new GetLastPackageAgain0();
+		transition[State.GETACK1.ordinal()][Msg.CHECKSUM_UNSUCCESFULL.ordinal()] = new GetLastPackageAgain1();
 		transition[State.GETANOTHERPACKAGEack0.ordinal()][Msg.CHECKSUM.ordinal()] = new GetNextPackageACK1();
 		transition[State.GETANOTHERPACKAGEack1.ordinal()][Msg.CHECKSUM.ordinal()] = new GetNextPackageACK0();
-		transition[State.SENDACK0.ordinal()][Msg.CHECKSUM_UNSUCCESFULL.ordinal()] = new GetLastPackageAgain();
-		transition[State.SENDACK1.ordinal()][Msg.CHECKSUM_UNSUCCESFULL.ordinal()] = new GetLastPackageAgain();
-		transition[State.SENDACK0.ordinal()][Msg.ALL_PACKAGES_RECEIVED.ordinal()] = new BuildFile();
-		transition[State.SENDACK1.ordinal()][Msg.ALL_PACKAGES_RECEIVED.ordinal()] = new BuildFile();
+		transition[State.GETANOTHERPACKAGEack0.ordinal()][Msg.CHECKSUM_UNSUCCESFULL.ordinal()] = new GetLastPackageAgain0();
+		transition[State.GETANOTHERPACKAGEack1.ordinal()][Msg.CHECKSUM_UNSUCCESFULL.ordinal()] = new GetLastPackageAgain1();
+		transition[State.GETACK0.ordinal()][Msg.ALL_PACKAGES_RECEIVED.ordinal()] = new BuildFile();
+		transition[State.GETACK1.ordinal()][Msg.ALL_PACKAGES_RECEIVED.ordinal()] = new BuildFile();
 	}
 	
 	public static void main(String[] args) {
@@ -64,9 +69,28 @@ public class FileReceiverController implements Runnable{
 			case 1:
 				receiver.sendConnection(1);
 				processMsg(Msg.CHECKSUM_SUCCESSFULL);
+				
+			case 2:
+				processMsg(Msg.ALL_PACKAGES_RECEIVED);
 			}
 			
 		case GETANOTHERPACKAGEack0:
+			System.out.println(ack);
+			switch(ack) {
+			case 1:
+				receiver.sendConnection(1);
+				processMsg(Msg.CHECKSUM);
+				
+			case 0:
+				receiver.sendConnection(0);
+				processMsg(Msg.CHECKSUM_UNSUCCESFULL);
+				
+//			case 2:
+//				System.out.println(ack);
+//				processMsg(Msg.ALL_PACKAGES_RECEIVED);
+			}
+			
+		case GETANOTHERPACKAGEack1:
 			switch(ack) {
 			case 0:
 				receiver.sendConnection(0);
@@ -74,21 +98,29 @@ public class FileReceiverController implements Runnable{
 				
 			case 1:
 				receiver.sendConnection(1);
-				processMsg(Msg.CHECKSUM);
+				processMsg(Msg.CHECKSUM_UNSUCCESFULL);
+		
+			case 2:
+				processMsg(Msg.ALL_PACKAGES_RECEIVED);
 			}
-			break;
 			
-//		case GETANOTHERPACKAGEack1:
-//			switch(ack) {
-//			case 0:
-//				receiver.sendConnection(0);
-//				processMsg(Msg.CHECKSUM);
-//				
-//			case 1:
-//				receiver.sendConnection(1);
-//				processMsg(Msg.CHECKSUM);
-//			}
-//			break;
+		case GETACK0:
+			ack = receiver.waitForPacket();
+			System.out.println("Package Received!");
+			if(ack == 0) {
+				processMsg(Msg.READ);
+			} else {
+				processMsg(Msg.CHECKSUM_UNSUCCESFULL);
+				}
+			
+		case GETACK1:
+			ack = receiver.waitForPacket();
+			System.out.println("Package Received!");
+			if(ack == 1) {
+				processMsg(Msg.READ);
+			} else {
+				processMsg(Msg.CHECKSUM_UNSUCCESFULL);
+				}
 			
 		default:
 			break;
@@ -142,7 +174,7 @@ public class FileReceiverController implements Runnable{
 		@Override
 		public State execute(Msg input) {
 			//System.out.println("Package Received!");
-			return State.SENDACK0;
+			return State.GETACK1;
 		}
 	}
 	
@@ -150,15 +182,24 @@ public class FileReceiverController implements Runnable{
 		@Override
 		public State execute(Msg input) {
 			//System.out.println("Package Received!");
-			return State.SENDACK1;
+			return State.GETACK0;
 		}
 	}
 	
-	class GetLastPackageAgain extends Transition {
+	class GetLastPackageAgain1 extends Transition {
 		@Override
 		public State execute(Msg input) {
 			//System.out.println("Package Received!");
-			return State.SENDACK1;
+			return State.GETACK1;
+			//oder return State.SENDACK0;
+		}
+	}
+	
+	class GetLastPackageAgain0 extends Transition {
+		@Override
+		public State execute(Msg input) {
+			//System.out.println("Package Received!");
+			return State.GETACK0;
 			//oder return State.SENDACK0;
 		}
 	}
@@ -166,7 +207,16 @@ public class FileReceiverController implements Runnable{
 	class BuildFile extends Transition {
 		@Override
 		public State execute(Msg input) {
-			//System.out.println("Package Received!");
+			try (FileOutputStream file = new FileOutputStream("input.txt")) {
+				for (int i = 0; i < receiver.bytes.size(); i++) {  
+					file.write(receiver.bytes.get(i));
+					file.flush();
+				}
+				file.close();
+			} catch (IOException e) {
+				System.out.println("CANT WRITE TO FILE!!!");
+				e.printStackTrace();
+			}
 			return State.GET_PACKAGES;
 		}
 	}
