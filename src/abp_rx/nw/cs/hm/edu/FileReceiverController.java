@@ -36,10 +36,10 @@ public class FileReceiverController implements Runnable {
 		transition[State.GET_PACKAGE.ordinal()][Msg.CHECKSUM_UNSUCCESFULL.ordinal()] = new Checksum();
 		transition[State.GET_PACKAGE.ordinal()][Msg.ALL_PACKAGES_RECEIVED.ordinal()] = new BuildFile();
 		transition[State.GET_PACKAGE.ordinal()][Msg.TIMEOUT.ordinal()] = new Fail();
-		timer = new Timer(1000, e->incTimeoutCounter());
+		timer = new Timer(1000, e->countUp());
 	}
 
-	private void incTimeoutCounter() {
+	private void countUp() {
 		timeoutCounter += 1;
 		if (timeoutCounter == TIME_TO_WAIT) {
 			this.processMsg(Msg.TIMEOUT);
@@ -122,6 +122,7 @@ public class FileReceiverController implements Runnable {
 	class Fail extends Transition {
 		@Override
 		public State execute(Msg input) {
+			receiver.bytes.clear();
 			receiver.sendConnection(3);
 			return State.GET_PACKAGE;
 		}
@@ -138,7 +139,6 @@ public class FileReceiverController implements Runnable {
 				}
 				file.close();
 			} catch (IOException e) {
-				System.out.println("CANT WRITE TO FILE!!!");
 				e.printStackTrace();
 			}
 			process = false;
