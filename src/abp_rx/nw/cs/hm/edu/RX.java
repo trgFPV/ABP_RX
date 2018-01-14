@@ -42,41 +42,30 @@ public class RX {
 		}
 		try {
 			Inputsocket.receive(input);
-			System.out.println("package received");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		
 		byte[] head = Arrays.copyOfRange(input.getData(), 0,20);
 		int ack = head[0];
-		System.out.println(ack);
 		int sequence = payload.byteToInt(Arrays.copyOfRange(head, 4, 8));
 		long checksum = payload.byteToLong(Arrays.copyOfRange(head, 8, 16));
 		int conlength = payload.byteToInt(Arrays.copyOfRange(head, 16, 20)) + 20;
 
 		System.out.println("Ack: "+ack+" Sequence :"+sequence+" checksum:"+ checksum + " conlength: " + conlength);
 		byte[] content = Arrays.copyOfRange(input.getData(), 20, conlength);
-		System.out.println(content.length);
 		if (generateChecksum(content) == checksum) {
-			System.out.println("test ok");
+			System.out.println("fully received");
 			bytes.add(content);
 		} else if(ack == 2){
 			allReceived = true;
 		} else {
 			System.out.println("package false");
 		}
-		System.out.println(generateChecksum(content));
-		System.out.println("wait for Packts= " + ack);
 		return ack;
 	}
 
 	private long generateChecksum(byte[] field) {
-//		int checksum = 0;
-//		for(byte b : field) {
-//			checksum += b;
-//		}
-//		
-//		return checksum;
 		CRC32 crc32 = new CRC32();
 		crc32.update(field);
 		return crc32.getValue();
