@@ -46,8 +46,12 @@ public class RX {
 			e.printStackTrace();
 		}
 		
+		
 		byte[] head = Arrays.copyOfRange(input.getData(), 0,20);
 		int ack = head[0];
+		if(ack==2) {
+			return ack;
+		}
 		int sequence = payload.byteToInt(Arrays.copyOfRange(head, 4, 8));
 		long checksum = payload.byteToLong(Arrays.copyOfRange(head, 8, 16));
 		int conlength = payload.byteToInt(Arrays.copyOfRange(head, 16, 20)) + 20;
@@ -90,16 +94,5 @@ public class RX {
 		}
 		
 	}
-
-	// public DatagramPacket preparePacket(int index) {
-	// // package data = payload + 4 bytes sequence + sequenceNrSize +
-	// checkSumSize
-	//
-	// // copy the dataFrame from the payload
-	// byte[] dataFrame = payload.getCompleteDataArray();
-	// dataFrame = Arrays.copyOfRange(dataFrame, index, index + dataPkgSize);
-	//
-	// return new DatagramPacket(dataFrame, completePkgSize, RX_IP, PORT);
-	// }
 
 }

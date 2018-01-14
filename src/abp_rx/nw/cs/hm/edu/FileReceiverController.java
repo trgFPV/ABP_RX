@@ -4,25 +4,30 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 
+import javax.swing.Timer;
+
 public class FileReceiverController implements Runnable {
 
 	public enum State {
-		GET_PACKAGE, CHECKFIRSTSUM, GETACK0, GETACK1, GETANOTHERPACKAGEack1, GETANOTHERPACKAGEack0, BUILD_FILE
+		GET_PACKAGE
 	}
 
 	public enum Msg {
-		READ_HEADER, TIMEOUT, CHECKSUM_UNSUCCESFULL, CHECKSUM_SUCCESSFULL, READ, CHECKSUM, BUILD_SUCCESSFULL, ALL_PACKAGES_RECEIVED
+		TIMEOUT, CHECKSUM_UNSUCCESFULL, CHECKSUM, ALL_PACKAGES_RECEIVED
 	}
 
 	// current state of the FSM
 	private State currentState;
 	// 2D array defining all transitions that can occur
 	private Transition[][] transition;
-
 	private Payload pay;
 	private RX receiver;
 	private int ack = 1;
 	private boolean process = true;
+	private int TIME_TO_WAIT = 10;
+	private int timeoutCounter = 0;
+
+	private Timer timer;
 
 	public FileReceiverController() {
 		currentState = State.GET_PACKAGE;
@@ -30,7 +35,15 @@ public class FileReceiverController implements Runnable {
 		transition[State.GET_PACKAGE.ordinal()][Msg.CHECKSUM.ordinal()] = new Checksum();
 		transition[State.GET_PACKAGE.ordinal()][Msg.CHECKSUM_UNSUCCESFULL.ordinal()] = new Checksum();
 		transition[State.GET_PACKAGE.ordinal()][Msg.ALL_PACKAGES_RECEIVED.ordinal()] = new BuildFile();
-		
+		transition[State.GET_PACKAGE.ordinal()][Msg.TIMEOUT.ordinal()] = new Fail();
+		timer = new Timer(1000, e->incTimeoutCounter());
+	}
+
+	private void incTimeoutCounter() {
+		timeoutCounter += 1;
+		if (timeoutCounter == TIME_TO_WAIT) {
+			this.processMsg(Msg.TIMEOUT);
+		}
 	}
 
 	public static void main(String[] args) {
@@ -54,11 +67,12 @@ public class FileReceiverController implements Runnable {
 			e.printStackTrace();
 		}
 		receiver = new RX(pay);
-		while(process) {
-			
+		while (process) {
+
 			int newack = receiver.waitForPacket();
-			
-			switch(ack) {
+			timeoutCounter = 0;
+
+			switch (ack) {
 			case 0:
 				System.out.println("0");
 				if (ack == newack) {
@@ -67,7 +81,7 @@ public class FileReceiverController implements Runnable {
 				} else if (ack == 1) {
 					receiver.sendConnection(1);
 					processMsg(Msg.CHECKSUM_UNSUCCESFULL);
-				} else if(newack==2) {
+				} else if (newack == 2) {
 					processMsg(Msg.ALL_PACKAGES_RECEIVED);
 				}
 				break;
@@ -80,84 +94,18 @@ public class FileReceiverController implements Runnable {
 				} else if (ack == 0) {
 					receiver.sendConnection(0);
 					processMsg(Msg.CHECKSUM_UNSUCCESFULL);
-				} else if(newack==2) {
+				} else if (newack == 2) {
 					processMsg(Msg.ALL_PACKAGES_RECEIVED);
 				}
 				break;
 			}
-			
-			if(ack==1) {
+
+			if (ack == 1) {
 				ack = 0;
 			} else {
 				ack = 1;
 			}
 		}
-//		switch (currentState) {
-//		case GET_PACKAGES:
-//			processMsg(Msg.READ_HEADER);
-//			break;
-//
-//		case CHECKFIRSTSUM:
-//			if (ack == 0) {
-//				receiver.sendConnection(0);
-//				processMsg(Msg.TIMEOUT);
-//			} else if (ack == 1) {
-//				System.out.println("juhu");
-//				receiver.sendConnection(1);
-//				processMsg(Msg.CHECKSUM_SUCCESSFULL);
-//			} else {
-//				processMsg(Msg.ALL_PACKAGES_RECEIVED);
-//			}
-//			break;
-//
-//		case GETANOTHERPACKAGEack0:
-//			if (ack == 0) {
-//				receiver.sendConnection(0);
-//				processMsg(Msg.CHECKSUM);
-//			} else if (ack == 1) {
-//				receiver.sendConnection(1);
-//				processMsg(Msg.CHECKSUM_UNSUCCESFULL);
-//			} else {
-//				processMsg(Msg.ALL_PACKAGES_RECEIVED);
-//			}
-//			break;
-//
-//		case GETANOTHERPACKAGEack1:
-//			if (ack == 1) {
-//				receiver.sendConnection(1);
-//				processMsg(Msg.CHECKSUM);
-//			} else if (ack == 0) {
-//				receiver.sendConnection(0);
-//				processMsg(Msg.CHECKSUM_UNSUCCESFULL);
-//			} else {
-//				processMsg(Msg.ALL_PACKAGES_RECEIVED);
-//			}
-//			break;
-//
-//		case GETACK0:
-//			ack = receiver.waitForPacket();
-//			if (ack == 0) {
-//				processMsg(Msg.READ);
-//			} else {
-//				processMsg(Msg.CHECKSUM_UNSUCCESFULL);
-//			}
-//			break;
-//
-//		case GETACK1:
-//			if (currentState != State.GETACK1) {
-//				System.out.println("ALDA WAS LOS HIER -.-");
-//			}
-//			ack = receiver.waitForPacket();
-//			if (ack == 1) {
-//				processMsg(Msg.READ);
-//			} else {
-//				processMsg(Msg.CHECKSUM_UNSUCCESFULL);
-//			}
-//			break;
-//
-//		default:
-//			break;
-//		}
 	}
 
 	abstract class Transition {
@@ -167,73 +115,15 @@ public class FileReceiverController implements Runnable {
 	class Checksum extends Transition {
 		@Override
 		public State execute(Msg input) {
-//			try {
-//				pay = new Payload();
-//			} catch (IOException e) {
-//				e.printStackTrace();
-//			}
-//			receiver = new RX(pay);
-//			ack = receiver.waitForPacket();
-//			return State.CHECKFIRSTSUM;
 			return State.GET_PACKAGE;
 		}
 	}
-
-	class SendAck0 extends Transition {
+	
+	class Fail extends Transition {
 		@Override
 		public State execute(Msg input) {
-			System.out.println("now returning GETANOTHERPACKAGEack1");
-			return State.GETANOTHERPACKAGEack1;
-		}
-	}
-
-	class SendAck1 extends Transition {
-		@Override
-		public State execute(Msg input) {
-			// System.out.println("Package Received!");
-			return State.GETANOTHERPACKAGEack0;
-		}
-	}
-
-	class GoBackToIdle extends Transition {
-		@Override
-		public State execute(Msg input) {
-			// System.out.println("Package Received!");
+			receiver.sendConnection(3);
 			return State.GET_PACKAGE;
-		}
-	}
-
-	class GetNextPackageACK1 extends Transition {
-		@Override
-		public State execute(Msg input) {
-			// System.out.println("Package Received!");
-			return State.GETACK1;
-		}
-	}
-
-	class GetNextPackageACK0 extends Transition {
-		@Override
-		public State execute(Msg input) {
-			// System.out.println("Package Received!");
-			return State.GETACK0;
-		}
-	}
-
-	class GetLastPackageAgain1 extends Transition {
-		@Override
-		public State execute(Msg input) {
-			// System.out.println("Package Received!");
-			return State.GETANOTHERPACKAGEack1;
-			// oder return State.SENDACK0;
-		}
-	}
-
-	class GetLastPackageAgain0 extends Transition {
-		@Override
-		public State execute(Msg input) {
-			// System.out.println("Package Received!");
-			return State.GETANOTHERPACKAGEack0;
-			// oder return State.SENDACK0;
 		}
 	}
 
