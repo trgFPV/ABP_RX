@@ -24,10 +24,6 @@ public class FileReceiverController implements Runnable {
 	private RX receiver;
 	private int ack = 1;
 	private boolean process = true;
-	private int TIME_TO_WAIT = 10;
-	private int timeoutCounter = 0;
-
-	private Timer timer;
 
 	public FileReceiverController() {
 		currentState = State.GET_PACKAGE;
@@ -36,14 +32,6 @@ public class FileReceiverController implements Runnable {
 		transition[State.GET_PACKAGE.ordinal()][Msg.CHECKSUM_UNSUCCESFULL.ordinal()] = new Checksum();
 		transition[State.GET_PACKAGE.ordinal()][Msg.ALL_PACKAGES_RECEIVED.ordinal()] = new BuildFile();
 		transition[State.GET_PACKAGE.ordinal()][Msg.TIMEOUT.ordinal()] = new Fail();
-		timer = new Timer(1000, e->countUp());
-	}
-
-	private void countUp() {
-		timeoutCounter += 1;
-		if (timeoutCounter == TIME_TO_WAIT) {
-			this.processMsg(Msg.TIMEOUT);
-		}
 	}
 
 	public static void main(String[] args) {
@@ -69,10 +57,7 @@ public class FileReceiverController implements Runnable {
 		receiver = new RX(pay);
 		while (process) {
 
-			timer.start();
 			int newack = receiver.waitForPacket();
-			timer.stop();
-			timeoutCounter = 0;
 			switch (ack) {
 			case 0:
 				System.out.println("0");

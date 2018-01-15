@@ -16,10 +16,11 @@ public class RX {
 	private static final int INPORT = 8087;
 	DatagramSocket Inputsocket;
 	Payload payload;
-	private byte[] inData = new byte[1440];
+	private byte[] inData = new byte[1420];
 	public ArrayList <byte[]> bytes = new ArrayList<>();
 	public boolean allReceived = false;
 	private int sequence = 0;
+	private int bytesSize = 0;
 
 	public RX(Payload pay) {
 		this.payload = pay;
@@ -56,6 +57,8 @@ public class RX {
 		if ((generateChecksum(content) == checksum) && (sequence == this.sequence)) {
 			System.out.println("fully received");
 			bytes.add(content);
+			bytesSize += content.length;
+			System.out.println(bytesSize);
 			this.sequence++;
 		} else if(ack == 2){
 			allReceived = true;
