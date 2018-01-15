@@ -69,16 +69,17 @@ public class FileReceiverController implements Runnable {
 		receiver = new RX(pay);
 		while (process) {
 
+			timer.start();
 			int newack = receiver.waitForPacket();
+			timer.stop();
 			timeoutCounter = 0;
-
 			switch (ack) {
 			case 0:
 				System.out.println("0");
 				if (ack == newack) {
 					receiver.sendConnection(0);
 					processMsg(Msg.CHECKSUM);
-				} else if (ack == 1) {
+				} else if (newack == 1) {
 					receiver.sendConnection(1);
 					processMsg(Msg.CHECKSUM_UNSUCCESFULL);
 				} else if (newack == 2) {
@@ -91,7 +92,7 @@ public class FileReceiverController implements Runnable {
 				if (ack == newack) {
 					receiver.sendConnection(1);
 					processMsg(Msg.CHECKSUM);
-				} else if (ack == 0) {
+				} else if (newack == 0) {
 					receiver.sendConnection(0);
 					processMsg(Msg.CHECKSUM_UNSUCCESFULL);
 				} else if (newack == 2) {
@@ -123,7 +124,6 @@ public class FileReceiverController implements Runnable {
 		@Override
 		public State execute(Msg input) {
 			receiver.bytes.clear();
-			receiver.sendConnection(3);
 			return State.GET_PACKAGE;
 		}
 	}
@@ -132,7 +132,7 @@ public class FileReceiverController implements Runnable {
 		@Override
 		public State execute(Msg input) {
 			System.out.println("build File");
-			try (FileOutputStream file = new FileOutputStream("test.txt")) {
+			try (FileOutputStream file = new FileOutputStream("test.png")) {
 				for (int i = 0; i < receiver.bytes.size(); i++) {
 					file.write(receiver.bytes.get(i));
 					file.flush();

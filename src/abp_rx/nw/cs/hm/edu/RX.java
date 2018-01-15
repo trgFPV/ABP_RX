@@ -19,6 +19,7 @@ public class RX {
 	private byte[] inData = new byte[1440];
 	public ArrayList <byte[]> bytes = new ArrayList<>();
 	public boolean allReceived = false;
+	private int sequence = 0;
 
 	public RX(Payload pay) {
 		this.payload = pay;
@@ -33,13 +34,7 @@ public class RX {
 
 		System.out.println("wait");
 
-		DatagramPacket input = null;
-		try {
-			input = new DatagramPacket(inData, inData.length,InetAddress.getByName("192.168.178.137"),8086);
-		} catch (UnknownHostException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+		DatagramPacket input = new DatagramPacket(inData, inData.length,InetAddress.getLoopbackAddress(),50000);
 		try {
 			Inputsocket.receive(input);
 		} catch (IOException e) {
@@ -58,9 +53,10 @@ public class RX {
 
 		System.out.println("Ack: "+ack+" Sequence :"+sequence+" checksum:"+ checksum + " conlength: " + conlength);
 		byte[] content = Arrays.copyOfRange(input.getData(), 20, conlength);
-		if (generateChecksum(content) == checksum) {
+		if ((generateChecksum(content) == checksum) && (sequence == this.sequence)) {
 			System.out.println("fully received");
 			bytes.add(content);
+			this.sequence++;
 		} else if(ack == 2){
 			allReceived = true;
 		} else {
@@ -87,7 +83,7 @@ public class RX {
 		
 		try {
 			Inputsocket.send(new DatagramPacket(
-			output.toByteArray(),output.toByteArray().length,InetAddress.getByName("192.168.178.137"),8086));
+			output.toByteArray(),output.toByteArray().length,InetAddress.getLoopbackAddress(),50000));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
